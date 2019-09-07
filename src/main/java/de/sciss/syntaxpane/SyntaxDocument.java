@@ -134,7 +134,7 @@ public class SyntaxDocument extends PlainDocument implements AdjustmentListener 
         try {
             Segment seg = new Segment();
             getText(start, len, seg);
-            lexer.parse(seg, 0, toks);
+            lexer.parse(seg, start, toks);
         } catch (BadLocationException ex) {
             log.log(Level.SEVERE, null, ex);
         } finally {
