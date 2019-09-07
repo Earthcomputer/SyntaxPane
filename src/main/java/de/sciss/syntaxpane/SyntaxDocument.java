@@ -108,15 +108,27 @@ public class SyntaxDocument extends PlainDocument implements AdjustmentListener 
         int len = getLength();
         if (container != null && large) {
             start = container.viewToModel(new Point(5, container.getVisibleRect().y));
-            int end = container.viewToModel(new Point(5, container.getVisibleRect().y + container.getVisibleRect().height + 10));
-            start = Math.max(start - 50, 0);
-            end = Math.min(end + 50, len);
-            len = end - start;
-            if (!addedListener) {
-                if (container.getParent() instanceof JScrollPane) {
-                    ((JScrollPane) container.getParent()).getVerticalScrollBar().addAdjustmentListener(this);
+            int lines = (int)Math.ceil((double)container.getVisibleRect().height / container.getFontMetrics(container.getFont()).getHeight());
+            Segment text = new Segment();
+            try {
+                getText(start, len - start, text);
+            } catch (BadLocationException ex) {
+                log.log(Level.SEVERE, null, ex);
+                text = null;
+            }
+            if (text != null) {
+                int end, i;
+                for (end = start, i = 0; end < text.length() && i < lines; end++)
+                    if (text.charAt(end) == '\n')
+                        i++;
+                if (end == -1) end = len;
+                len = end - start;
+                if (!addedListener) {
+                    if (container.getParent() instanceof JScrollPane) {
+                        ((JScrollPane) container.getParent()).getVerticalScrollBar().addAdjustmentListener(this);
+                    }
+                    addedListener = true;
                 }
-                addedListener = true;
             }
         }
         try {
