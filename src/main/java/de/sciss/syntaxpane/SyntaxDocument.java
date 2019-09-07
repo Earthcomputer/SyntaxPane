@@ -15,6 +15,9 @@
 
 package de.sciss.syntaxpane;
 
+import java.awt.*;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
@@ -26,12 +29,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Element;
-import javax.swing.text.PlainDocument;
-import javax.swing.text.Segment;
+import javax.swing.text.*;
 
 /**
  * A document that supports being highlighted.  The document maintains an
@@ -40,7 +40,7 @@ import javax.swing.text.Segment;
  * 
  * @author Ayman Al-Sairafi, Hanns Holger Rutz
  */
-public class SyntaxDocument extends PlainDocument {
+public class SyntaxDocument extends PlainDocument implements AdjustmentListener {
     public static final String CAN_UNDO = "can-undo";
     public static final String CAN_REDO = "can-redo";
 
@@ -55,12 +55,36 @@ public class SyntaxDocument extends PlainDocument {
     private int earliestTokenChangePos = -1;
     private int latestTokenChangePos = -1;
 
+    private JTextComponent container = null;
+    private boolean large = false;
+    private boolean addedListener = false;
+
     public SyntaxDocument(Lexer lexer) {
         super();
         putProperty(PlainDocument.tabSizeAttribute, 4);
         this.lexer  = lexer;
         undo        = new CompoundUndoManager(this);    // Listen for undo and redo events
         propSupport = new PropertyChangeSupport(this);
+    }
+
+    public void setContainer(JTextComponent container) {
+        if (this.container != null) {
+            if (this.container.getParent() instanceof JScrollPane) {
+                ((JScrollPane) this.container.getParent()).getVerticalScrollBar().removeAdjustmentListener(this);
+            }
+        }
+        this.container = container;
+        addedListener = false;
+    }
+
+    public void setLarge(boolean large) {
+        this.large = large;
+    }
+
+    @Override
+    public void adjustmentValueChanged(AdjustmentEvent adjustmentEvent) {
+        if (large)
+            parse(null);
     }
 
     /*
@@ -80,10 +104,24 @@ public class SyntaxDocument extends PlainDocument {
 
         List<Token> toks = new ArrayList<Token>(getLength() / 10);
         long ts = System.nanoTime();
+        int start = 0;
         int len = getLength();
+        if (container != null && large) {
+            start = container.viewToModel(new Point(5, container.getVisibleRect().y));
+            int end = container.viewToModel(new Point(5, container.getVisibleRect().y + container.getVisibleRect().height + 10));
+            start = Math.max(start - 50, 0);
+            end = Math.min(end + 50, len);
+            len = end - start;
+            if (!addedListener) {
+                if (container.getParent() instanceof JScrollPane) {
+                    ((JScrollPane) container.getParent()).getVerticalScrollBar().addAdjustmentListener(this);
+                }
+                addedListener = true;
+            }
+        }
         try {
             Segment seg = new Segment();
-            getText(0, getLength(), seg);
+            getText(start, len, seg);
             lexer.parse(seg, 0, toks);
         } catch (BadLocationException ex) {
             log.log(Level.SEVERE, null, ex);
