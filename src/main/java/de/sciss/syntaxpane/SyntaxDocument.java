@@ -69,8 +69,8 @@ public class SyntaxDocument extends PlainDocument implements AdjustmentListener 
 
     public void setContainer(JTextComponent container) {
         if (this.container != null) {
-            if (this.container.getParent() instanceof JScrollPane) {
-                ((JScrollPane) this.container.getParent()).getVerticalScrollBar().removeAdjustmentListener(this);
+            if (this.container.getParent() != null && this.container.getParent().getParent() instanceof JScrollPane) {
+                ((JScrollPane) this.container.getParent().getParent()).getVerticalScrollBar().removeAdjustmentListener(this);
             }
         }
         this.container = container;
@@ -124,8 +124,8 @@ public class SyntaxDocument extends PlainDocument implements AdjustmentListener 
                 if (end == -1) end = len;
                 len = end - start;
                 if (!addedListener) {
-                    if (container.getParent() instanceof JScrollPane) {
-                        ((JScrollPane) container.getParent()).getVerticalScrollBar().addAdjustmentListener(this);
+                    if (container.getParent() != null && container.getParent().getParent() instanceof JScrollPane) {
+                        ((JScrollPane) container.getParent().getParent()).getVerticalScrollBar().addAdjustmentListener(this);
                     }
                     addedListener = true;
                 }
